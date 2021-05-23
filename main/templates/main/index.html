@@ -1,0 +1,113 @@
+{% extends 'main/base.html' %}
+
+{% block javascript %}
+    <script>
+        uploadbtn = document.getElementById('uploadbtn');
+        realFilebtn = document.getElementById('uploadInput');
+        uploadbtn.addEventListener("click",function() {realFilebtn.click();})
+
+        function readURL(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    $('#uploaded_image')
+                        .attr('src', e.target.result);
+                    document.getElementById('prediction').innerHTML = "";
+                    document.getElementById('description').innerHTML = "";
+
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+      function predictionsFromServer(){
+        $.ajax({
+          url: "livedata",
+          method: "POST",
+          headers: {'X-CSRFToken': '{{ csrf_token }}'},
+          data: {'IMAGEDATA':document.getElementById('uploaded_image').src},
+          dataType: "json"
+          
+        }).done(function(response) {
+          console.log("Success");
+          document.getElementById('prediction').innerHTML = ""+response['prediction'];
+          document.getElementById('description').innerHTML = ""+response['description'];
+          document.getElementById('comment_section').style.display = "block";
+
+        }).fail(function (error) {
+          document.getElementById('prediction').innerHTML = "Server Error";
+        });
+      }
+
+    
+    </script>
+{% endblock %}
+
+
+{% block content %}
+
+    <div class="row my-3 border">
+      
+    <div class="col-10 my-2" style="margin-left: 30px;">
+          <div class="text-center">
+              <input type="file" accept="image/*" name="" id="uploadInput" onchange="readURL(this);" class="" hidden>
+              <button id="uploadbtn" class="btn btn-danger my-3 px-3"> Upload</button>
+              <a class="btn btn-warning my-3 px-3" href="{% url 'stats_page' %}">Get Stats</a>
+              <div class="">
+                <img src="" onload="predictionsFromServer()" alt="" id="uploaded_image" style="width:300px;height:300px; min-width: 300px;min-height:300px;">
+                <h5 id='prediction' class="my-3"></h5>
+                <p id="description" class="text-justify my-3"></p>
+              </div>
+          </div>
+
+          <div id = "comment_section" style="display: none;">
+            <div class="">
+              <div class="mb-5">
+                <form action="comment" method="POST">
+                  {% csrf_token %}
+                  <textarea name="comment" id="" cols="" rows="2" class="form-control"></textarea>
+                  <button type="submit" class="btn btn-primary my-2 float-right">Comment</button>
+                </form>
+              </div >
+              <div class="row">
+                  <div class="panel panel-default widget">
+                      <div class="panel-heading">
+                          <span class="glyphicon glyphicon-comment"></span>
+                          <h6 class="panel-title">
+                              Recent Comments</h6>
+                          <span class="label label-info">
+                              </span>
+                      </div>
+                      <div class="panel-body">
+                          <ul class="list-group">
+                            {% for comment in comments %}
+                              <li class="list-group-item">
+                                  <div class="row">
+                                      <div class="col-xs-2 col-md-1">
+                                          <img src="https://www.freeiconspng.com/uploads/account-icon-5.jpg" width="100px" height="80px" class="img-circle img-responsive" alt="" /></div>
+                                      <div class="col-xs-10 col-md-11">
+                                          <div>
+                                              <div class="mic-info">
+                                                  By: <a href="">{{comment.user}}</a>
+                                              </div>
+                                          </div>
+                                          <div class="comment-text">
+                                              {{comment.comment}}
+                                          </div>
+                                          <div class="action">
+                                              <a type="button" href="delete/{{comment.id}}" class="btn btn-danger btn-xs text-white">
+                                                  Delete
+                                              </a>
+                                          </div>
+                                      </div>
+                                  </div>
+                              </li>
+                              {% endfor %}
+                          </ul>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          </div>
+    </div>
+    </div>
+{% endblock %}
